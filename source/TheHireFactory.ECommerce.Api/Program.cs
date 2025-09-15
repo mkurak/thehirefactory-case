@@ -1,66 +1,81 @@
-using Microsoft.OpenApi.Models;
-using TheHireFactory.ECommerce.Infrastructure;
-using TheHireFactory.ECommerce.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using Microsoft.AspNetCore.HttpLogging;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using AutoMapper;
+using TheHireFactory.ECommerce.Infrastructure;
+using TheHireFactory.ECommerce.Infrastructure.Data;
 using TheHireFactory.ECommerce.Api.Mappings;
+using TheHireFactory.ECommerce.Api.Middlewares;
 using TheHireFactory.ECommerce.Api.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var cs = Environment.GetEnvironmentVariable("DB_CONNECTION") ?? builder.Configuration.GetConnectionString("ECommerce");
-
-builder.Services.AddInfrastructure(cs);
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ECommerce API", Version = "v1" });
-});
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Services.AddHttpLogging(o => { o.LoggingFields = HttpLoggingFields.All; });
-builder.Services.AddExceptionHandler<TheHireFactory.ECommerce.Api.Middlewares.GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-builder.Services.AddAutoMapper(typeof(MappingProfile));
-builder.Services.AddFluentValidationAutoValidation(); // otomatik model validation
-builder.Services.AddValidatorsFromAssemblyContaining<ProductCreateDto>(); // assembly scan
-
+// --- Serilog ---
 builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.WithEnvironmentName()
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .ReadFrom.Configuration(ctx.Configuration));
 
+// --- DB Connection ---
+var cs = Environment.GetEnvironmentVariable("DB_CONNECTION")
+         ?? builder.Configuration.GetConnectionString("ECommerce");
+builder.Services.AddInfrastructure(cs);
+
+// --- MVC + Controllers ---
+builder.Services.AddControllers();
+
+// --- Swagger ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// --- Exception Handler + ProblemDetails ---
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+// --- AutoMapper + Validators ---
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<ProductCreateDto>();
+
+// --- Logging ---
+builder.Services.AddHttpLogging(_ => { /* varsayılan */ });
+
 var app = builder.Build();
 
+// --- Middleware pipeline ---
 app.UseSerilogRequestLogging();
+app.UseHttpLogging();
+
+app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI();
+
 app.MapControllers();
-app.UseExceptionHandler();
+app.MapGet("/health", () => Results.Ok(new { status = "ok", time = DateTimeOffset.UtcNow }));
 
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy", time = DateTimeOffset.UtcNow }));
-
+// --- DB migrate + seed (retry’li) ---
 using (var scope = app.Services.CreateScope())
 {
-    try
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
-        await db.Database.MigrateAsync();
-        app.Logger.LogInformation("Database migration applied.");
+    var db = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
+    const int maxRetries = 10;
+    var delay = TimeSpan.FromSeconds(3);
 
-        await SeedData.EnsureSeedAsync(db);
-        app.Logger.LogInformation("Database seeding completed.");
-    }
-    catch (Exception ex)
+    for (var attempt = 1; attempt <= maxRetries; attempt++)
     {
-        app.Logger.LogError(ex, "Database migration and seeding failed.");
-        throw;
+        try
+        {
+            await db.Database.MigrateAsync();
+            await SeedData.EnsureSeedAsync(db);
+            app.Logger.LogInformation("Database migration applied (attempt {Attempt})", attempt);
+            break;
+        }
+        catch (Exception ex) when (attempt < maxRetries)
+        {
+            app.Logger.LogWarning(ex, "DB not ready yet, retrying in {Delay}s... (attempt {Attempt}/{Max})",
+                delay.TotalSeconds, attempt, maxRetries);
+            await Task.Delay(delay);
+        }
     }
 }
 

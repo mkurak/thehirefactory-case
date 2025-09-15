@@ -3,7 +3,8 @@ using TheHireFactory.ECommerce.Domain.Entities;
 
 namespace TheHireFactory.ECommerce.Infrastructure.Data;
 
-public class ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : DbContext(options) {
+public class ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : DbContext(options)
+{
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
 
