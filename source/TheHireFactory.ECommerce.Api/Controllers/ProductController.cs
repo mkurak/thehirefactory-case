@@ -26,7 +26,14 @@ public class ProductController(IProductRepository products) : ControllerBase
     {
         var all = await products.ListWithCategoryAsync();
         var p = all.FirstOrDefault(x => x.Id == id);
-        if (p is null) return NotFound();
+        if (p is null)
+        {
+            return Problem(
+                title: "Kayıt bulunamadı",
+                detail: $"Product #{id} mevcut değil.",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
 
         var dto = new ProductReadDto(
             p.Id, p.Name, p.Price, p.Stock, p.CategoryId, p.Category!.Name
@@ -36,15 +43,8 @@ public class ProductController(IProductRepository products) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] ProductCreateDto dto)
+    public async Task<IActionResult> Post([FromBody] ProductCreateDto dto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return ValidationProblem("Name zorunludur.");
-        if (dto.Price < 0)
-            return ValidationProblem("Price 0'dan küçük olamaz.");
-        if (dto.Stock < 0)
-            return ValidationProblem("Stock 0'dan küçük olamaz.");
-
         var entity = new Product
         {
             Name = dto.Name.Trim(),
@@ -53,12 +53,13 @@ public class ProductController(IProductRepository products) : ControllerBase
             CategoryId = dto.CategoryId
         };
 
-        var created = await products.AddAsync(entity);
+        var created = await products.AddAsync(entity, ct);
 
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = created.Id },
-            new ProductReadDto(created.Id, created.Name, created.Price, created.Stock, created.CategoryId, created.Category?.Name ?? "")
+        var readDto = new ProductReadDto(
+            created.Id, created.Name, created.Price, created.Stock,
+            created.CategoryId, created.Category?.Name ?? string.Empty
         );
+
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, readDto);
     }
 }
