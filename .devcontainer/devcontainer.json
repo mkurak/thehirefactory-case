@@ -6,12 +6,17 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash"
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "dotnet-test-explorer.testProjectPath": "**/*.sln",
+        "dotnet-test-explorer.showCodeLens": true
       },
       "extensions": [
         "ms-dotnettools.csharp",
         "ms-azuretools.vscode-docker",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "natqe.reload",
+        "formulahendry.dotnet-test-explorer",
+        "ms-dotnettools.csdevkit"
       ]
     }
   },
