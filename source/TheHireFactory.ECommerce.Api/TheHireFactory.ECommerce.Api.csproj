@@ -26,4 +26,8 @@
     <ProjectReference Include="..\TheHireFactory.ECommerce.Domain\TheHireFactory.ECommerce.Domain.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' == 'true' and '$(Configuration)' == 'Debug'">
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+
 </Project>

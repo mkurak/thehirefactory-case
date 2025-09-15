@@ -1,0 +1,34 @@
+name: thehirefactory-watch
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: thehirefactory-sql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=user123TEST.
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+  api:
+    image: mcr.microsoft.com/dotnet/sdk:8.0   # watch için SDK image
+    container_name: thehirefactory-api
+    working_dir: /src/TheHireFactory.ECommerce.Api
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - DB_CONNECTION=Server=sqlserver;Database=ECommerceDb;User Id=sa;Password=user123TEST.;TrustServerCertificate=True;
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./source:/src:rw
+    depends_on:
+      - sqlserver
+    command: >
+      bash -lc "dotnet restore ../TheHireFactory.ECommerce.sln &&
+                dotnet watch run --no-hot-reload --urls http://0.0.0.0:8080"
+
+volumes:
+  mssql_data:
