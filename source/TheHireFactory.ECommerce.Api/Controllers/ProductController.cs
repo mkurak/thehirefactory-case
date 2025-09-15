@@ -1,54 +1,64 @@
 using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
+using TheHireFactory.ECommerce.Api.Contracts;
 using TheHireFactory.ECommerce.Domain.Abstractions;
 using TheHireFactory.ECommerce.Domain.Entities;
-using TheHireFactory.ECommerce.Api.Dtos;
 
 namespace TheHireFactory.ECommerce.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Produces("application/json")]
-public sealed class ProductController(IProductRepository products, IMapper mapper) : ControllerBase
+public class ProductController(IProductRepository products) : ControllerBase
 {
-    private readonly IProductRepository _products = products;
-    private readonly IMapper _mapper = mapper;
-
-    /// <summary>Ürünleri kategori bilgisiyle döner.</summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ProductReadDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Get(CancellationToken ct)
+    public async Task<IActionResult> Get()
     {
-        var list = await _products.ListWithCategoryAsync(ct);
-        var dto = _mapper.Map<IEnumerable<ProductReadDto>>(list);
+        var list = await products.ListWithCategoryAsync();
+
+        var result = list.Select(p => new ProductReadDto(
+            p.Id, p.Name, p.Price, p.Stock, p.CategoryId, p.Category!.Name
+        ));
+
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var all = await products.ListWithCategoryAsync();
+        var p = all.FirstOrDefault(x => x.Id == id);
+        if (p is null) return NotFound();
+
+        var dto = new ProductReadDto(
+            p.Id, p.Name, p.Price, p.Stock, p.CategoryId, p.Category!.Name
+        );
+
         return Ok(dto);
     }
 
-    /// <summary>Id ile tek ürün döner.</summary>
-    [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ProductReadDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id, CancellationToken ct)
-    {
-        var entity = await _products.GetByIdAsync(id, ct);
-        if (entity is null) return NotFound();
-        return Ok(_mapper.Map<ProductReadDto>(entity));
-    }
-
-    /// <summary>Yeni ürün oluşturur.</summary>
     [HttpPost]
-    [ProducesResponseType(typeof(ProductReadDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Post([FromBody] ProductCreateDto dto, CancellationToken ct)
+    public async Task<IActionResult> Post([FromBody] ProductCreateDto dto)
     {
-        // FluentValidation otomatik tetiklenecek (geçersiz ise 400 döner)
-        var entity = _mapper.Map<Product>(dto);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return ValidationProblem("Name zorunludur.");
+        if (dto.Price < 0)
+            return ValidationProblem("Price 0'dan küçük olamaz.");
+        if (dto.Stock < 0)
+            return ValidationProblem("Stock 0'dan küçük olamaz.");
 
-        var created = await _products.AddAsync(entity, ct);
-        // Eğer repo AddAsync() içinde SaveChanges yapmıyorsa, UoW/DbContext save burada çağrılır.
-        // Bizim altyapıda SaveChanges repo tarafında ise bu satıra gerek yok.
+        var entity = new Product
+        {
+            Name = dto.Name.Trim(),
+            Price = dto.Price,
+            Stock = dto.Stock,
+            CategoryId = dto.CategoryId
+        };
 
-        var read = _mapper.Map<ProductReadDto>(created);
-        return CreatedAtAction(nameof(GetById), new { id = read.Id }, read);
+        var created = await products.AddAsync(entity);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = created.Id },
+            new ProductReadDto(created.Id, created.Name, created.Price, created.Stock, created.CategoryId, created.Category?.Name ?? "")
+        );
     }
 }
