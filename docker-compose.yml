@@ -3,26 +3,21 @@ version: "3.9"
 name: thehirefactory
 services:
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: thehirefactory-sql
+    platform: linux/arm64
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=user
-      - MSSQL_PID=Developer
+      - MSSQL_SA_PASSWORD=Your_password123
     ports:
       - "1433:1433"
-    healthcheck:
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "user123TEST.", "-Q", "SELECT 1", "-C"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
     volumes:
       - mssql_data:/var/opt/mssql
 
   api:
     build:
-      context: ./source/TheHireFactory.ECommerce.Api
-      dockerfile: Dockerfile
+      context: ./source
+      dockerfile: TheHireFactory.ECommerce.Api/Dockerfile
     container_name: thehirefactory-api
     environment:
       - ASPNETCORE_URLS=http://+:8080
@@ -30,8 +25,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      - sqlserver
 
 volumes:
   mssql_data:
