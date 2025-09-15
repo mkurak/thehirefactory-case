@@ -8,7 +8,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ECommerceD
     public ECommerceDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ECommerceDbContext>();
-        var cs = Environment.GetEnvironmentVariable("DB_CONNECTION") ?? "Server=sqlserver;Database=TheHireFactoryECommerceCaseDb;User Id=TheHireFactoryUser;Password=user123TEST.;TrustServerCertificate=True;";
+        var cs = Environment.GetEnvironmentVariable("DB_CONNECTION") ?? "Server=sqlserver;Database=TheHireFactoryECommerceCaseDb;User Id=sa;Password=user123TEST.;TrustServerCertificate=True;";
 
         optionsBuilder.UseSqlServer(cs);
 
