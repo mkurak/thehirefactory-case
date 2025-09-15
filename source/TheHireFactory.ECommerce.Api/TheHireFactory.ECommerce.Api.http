@@ -1,0 +1,6 @@
+@TheHireFactory.ECommerce.Api_HostAddress = http://localhost:5115
+
+GET {{TheHireFactory.ECommerce.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
