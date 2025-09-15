@@ -4,6 +4,11 @@ using TheHireFactory.ECommerce.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Microsoft.AspNetCore.HttpLogging;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using AutoMapper;
+using TheHireFactory.ECommerce.Api.Mappings;
+using TheHireFactory.ECommerce.Api.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +26,9 @@ builder.Logging.AddConsole();
 builder.Services.AddHttpLogging(o => { o.LoggingFields = HttpLoggingFields.All; });
 builder.Services.AddExceptionHandler<TheHireFactory.ECommerce.Api.Middlewares.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+builder.Services.AddFluentValidationAutoValidation(); // otomatik model validation
+builder.Services.AddValidatorsFromAssemblyContaining<ProductCreateDto>(); // assembly scan
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.WithEnvironmentName()
