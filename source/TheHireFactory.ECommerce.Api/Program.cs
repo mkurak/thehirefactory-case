@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.OpenApi.Models;
 using TheHireFactory.ECommerce.Infrastructure;
-using Microsoft.OpenApi.Models;
-using TheHireFactory.ECommerce.Infrastructure;
-using Microsoft.Extensions.Logging;
 using TheHireFactory.ECommerce.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
+using Microsoft.AspNetCore.HttpLogging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,9 +18,17 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Services.AddHttpLogging(o => { o.LoggingFields = HttpLoggingFields.All; });
+
+builder.Host.UseSerilog((ctx, lc) => lc
+    .Enrich.WithEnvironmentName()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .ReadFrom.Configuration(ctx.Configuration));
 
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
