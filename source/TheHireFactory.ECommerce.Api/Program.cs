@@ -36,10 +36,13 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
         await db.Database.MigrateAsync();
         app.Logger.LogInformation("Database migration applied.");
+
+        await SeedData.EnsureSeedAsync(db);
+        app.Logger.LogInformation("Database seeding completed.");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database migration failed.");
+        app.Logger.LogError(ex, "Database migration and seeding failed.");
         throw;
     }
 }
