@@ -19,6 +19,8 @@ builder.Services.AddSwaggerGen(c =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Services.AddHttpLogging(o => { o.LoggingFields = HttpLoggingFields.All; });
+builder.Services.AddExceptionHandler<TheHireFactory.ECommerce.Api.Middlewares.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .Enrich.WithEnvironmentName()
@@ -32,6 +34,7 @@ app.UseSerilogRequestLogging();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
+app.UseExceptionHandler();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", time = DateTimeOffset.UtcNow }));
 
