@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{6AE60F0C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheHireFactory.ECommerce.Tests.Unit", "Tests\TheHireFactory.ECommerce.Tests.Unit\TheHireFactory.ECommerce.Tests.Unit.csproj", "{9AD1ECBF-69CA-461D-847C-47B23C39CDD8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheHireFactory.ECommerce.Tests.Integration", "Tests\TheHireFactory.ECommerce.Tests.Integration\TheHireFactory.ECommerce.Tests.Integration.csproj", "{8C8C4FAE-2CCA-4959-BF86-D68F99051C13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,8 +40,13 @@ Global
 		{9AD1ECBF-69CA-461D-847C-47B23C39CDD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9AD1ECBF-69CA-461D-847C-47B23C39CDD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9AD1ECBF-69CA-461D-847C-47B23C39CDD8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C8C4FAE-2CCA-4959-BF86-D68F99051C13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C8C4FAE-2CCA-4959-BF86-D68F99051C13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C8C4FAE-2CCA-4959-BF86-D68F99051C13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C8C4FAE-2CCA-4959-BF86-D68F99051C13}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9AD1ECBF-69CA-461D-847C-47B23C39CDD8} = {6AE60F0C-95C7-4450-A904-B551AF5D0FDC}
+		{8C8C4FAE-2CCA-4959-BF86-D68F99051C13} = {6AE60F0C-95C7-4450-A904-B551AF5D0FDC}
 	EndGlobalSection
 EndGlobal

@@ -8,6 +8,7 @@ using TheHireFactory.ECommerce.Api.Mappings;
 using TheHireFactory.ECommerce.Api.Middlewares;
 using TheHireFactory.ECommerce.Api.Dtos;
 using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +22,20 @@ builder.Host.UseSerilog((ctx, lc) => lc
 // --- DB Connection ---
 var cs = Environment.GetEnvironmentVariable("DB_CONNECTION")
          ?? builder.Configuration.GetConnectionString("ECommerce");
-builder.Services.AddInfrastructure(cs);
+
+// ⚠️ Test ortamında AddInfrastructure çağrılmasın; TestWebApplicationFactory SQLite'ı kendisi ekleyecek
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddInfrastructure(cs);
+}
 
 // --- MVC + Controllers ---
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();
@@ -57,7 +68,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ProductCreateDto>();
 
 // --- Logging ---
-builder.Services.AddHttpLogging(_ => { /* varsayılan */ });
+builder.Services.AddHttpLogging(_ => { /* defaults */ });
 
 var app = builder.Build();
 
@@ -65,7 +76,15 @@ var app = builder.Build();
 app.UseSerilogRequestLogging();
 app.UseHttpLogging();
 
-app.UseExceptionHandler();
+if (app.Environment.IsEnvironment("Testing"))
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler();
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -73,8 +92,11 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", time = DateTimeOffset.UtcNow }));
 
 // --- DB migrate + seed (retry’li) ---
-using (var scope = app.Services.CreateScope())
+// Test ortamında migrate/seed çalışmasın; ayrıca appsettings ile DisableSeed=true ise de atla
+var disableSeed = builder.Configuration.GetValue<bool>("DisableSeed", false);
+if (!builder.Environment.IsEnvironment("Testing") && !disableSeed)
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ECommerceDbContext>();
     const int maxRetries = 10;
     var delay = TimeSpan.FromSeconds(3);
