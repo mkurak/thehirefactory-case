@@ -9,6 +9,9 @@ using TheHireFactory.ECommerce.Api.Middlewares;
 using TheHireFactory.ECommerce.Api.Dtos;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
+using Swashbuckle.AspNetCore.Filters;
+using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using TheHireFactory.ECommerce.Api.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,24 +41,29 @@ builder.Services.AddControllers()
     });
 
 // --- Swagger ---
+builder.Services.AddFluentValidationRulesToSwagger();
+builder.Services.AddSwaggerExamplesFromAssemblyOf<ProductCreateExample>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ECommerce API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ECommerce API",
+        Version = "v1",
+        Description = "Ürün / kategori yönetimi için minimal e-ticaret API’si",
+        Contact = new OpenApiContact { Name = "THF Team" }
+    });
 
-    c.MapType<TheHireFactory.ECommerce.Api.Contracts.ProductCreateDto>(() =>
-        new OpenApiSchema
-        {
-            Type = "object",
-            Properties = new Dictionary<string, OpenApiSchema>
-            {
-                ["name"] = new() { Type = "string", Example = new Microsoft.OpenApi.Any.OpenApiString("Laptop") },
-                ["price"] = new() { Type = "number", Format = "decimal", Example = new Microsoft.OpenApi.Any.OpenApiDouble(19999.90) },
-                ["stock"] = new() { Type = "integer", Example = new Microsoft.OpenApi.Any.OpenApiInteger(25) },
-                ["categoryId"] = new() { Type = "integer", Example = new Microsoft.OpenApi.Any.OpenApiInteger(1) }
-            },
-            Required = new HashSet<string> { "name", "price", "stock", "categoryId" }
-        });
+    var xml = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
+    if (File.Exists(xmlPath))
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+
+    c.ExampleFilters();
+
+    c.OperationFilter<DefaultResponsesOperationFilter>();
+
+    c.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 });
 
 // --- Exception Handler + ProblemDetails ---
